@@ -95,7 +95,7 @@ src/
 └─ styles/                    # tema único, providers, registry de SSR
 ```
 
-**Fluxo de uma requisição:** URL (`/dashboard?states=TX&from=…`) → `proxy.ts` (valida a sessão e salva os filtros) → `page.tsx` (Server Component: faz o parse dos search params com Zod) → `getDashboardData` (em cache) → `DashboardView` (Client Component). Uma interação altera a URL com `router.push` dentro de uma `transition`, e o servidor recalcula tudo.
+**Fluxo de uma requisição:** URL (`/dashboard?states=TX&from=…`) → `proxy.ts` (valida a sessão e salva os filtros) → `page.tsx` (Server Component: faz o parse dos search params com Zod) → `getDashboardOverview` + `getTransactionsPage` (em paralelo, cada um com seu cache) → `DashboardView` (Client Component). Uma interação altera a URL com `router.push` dentro de uma `transition`, e o servidor recalcula tudo.
 
 ## Decisões técnicas (ADRs)
 
@@ -111,7 +111,18 @@ A regra fica numa função pura (`src/domain/pending.ts`) e aparece em um toolti
 
 ### ADR-002: Agregação no servidor com cache do Next.js
 
-O `transactions.json` tem **50 mil registros (11,7 MB)** e nunca é enviado ao navegador. O repositório lê e valida o arquivo com Zod uma única vez por processo. `getDashboardData` usa `'use cache'` (Cache Components) com uma entrada por combinação de filtros, `cacheLife('hours')` e `cacheTag('transactions')`. O cliente recebe apenas alguns KB de dados agregados e uma página da tabela.
+O `transactions.json` tem **50 mil registros (11,7 MB)** e nunca é enviado ao navegador. O repositório lê e valida o arquivo com Zod uma única vez por processo. O cliente recebe apenas alguns KB de dados agregados e uma página da tabela.
+
+O cache usa `'use cache'` (Cache Components), com `cacheLife('hours')` e `cacheTag('transactions')`. Os argumentos de uma função com `'use cache'` formam a chave do cache, por isso ele fica **dividido em duas funções**, buscadas em paralelo:
+
+| Função                                      | Chave do cache               | Conteúdo                            |
+| ------------------------------------------- | ---------------------------- | ----------------------------------- |
+| `getDashboardOverview(filters)`             | filtros                      | cards, gráficos, opções dos selects |
+| `getTransactionsPage(filters, tableParams)` | filtros + página + ordenação | 10 linhas da tabela                 |
+
+Assim, **trocar de página ou reordenar a tabela não recalcula cards e gráficos**: essa parte vem direto do cache.
+
+**Por que paginação e não rolagem infinita:** a tabela mostra sempre ~10 linhas, com memória constante no navegador. A posição fica na URL (`?page=37`), então dá para compartilhar o link, o voltar do navegador funciona e a página sobrevive ao F5, que é o que um histórico financeiro, usado para conferência, precisa. A rolagem infinita acumula linhas na tela, exigiria virtualizar a lista e perderia a posição ao recarregar. Com um banco de dados real, a paginação por número de página daria lugar à paginação por cursor (keyset), que não degrada em páginas distantes.
 
 Com Cache Components, `/dashboard` usa **Partial Prerendering**: o shell (sidebar e skeleton) é estático e os dados chegam por streaming.
 
