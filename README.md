@@ -7,6 +7,7 @@
 [![CI](https://github.com/FlaviaMMartini/dashboard-financeiro/actions/workflows/ci.yml/badge.svg)](https://github.com/FlaviaMMartini/dashboard-financeiro/actions/workflows/ci.yml)
 [![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen?logo=jest&logoColor=white)](jest.config.ts)
 [![E2E](https://img.shields.io/badge/e2e-Playwright-2EAD33?logo=playwright&logoColor=white)](e2e/dashboard.spec.ts)
+[![Vercel](https://img.shields.io/badge/deploy-Vercel-000000?logo=vercel&logoColor=white)](https://dashboard-financeiro-nine-dusky.vercel.app)
 [![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-FE5196?logo=conventionalcommits&logoColor=white)](https://www.conventionalcommits.org)
 [![Code style: Prettier](https://img.shields.io/badge/code_style-prettier-F7B93E?logo=prettier&logoColor=white)](.prettierrc.json)
 
@@ -16,6 +17,10 @@
 [![Material UI](https://img.shields.io/badge/Material_UI-9-007FFF?logo=mui&logoColor=white)](https://mui.com)
 [![styled-components](https://img.shields.io/badge/styled--components-6-DB7093?logo=styledcomponents&logoColor=white)](https://styled-components.com)
 [![Zod](https://img.shields.io/badge/Zod-4-3E67B1?logo=zod&logoColor=white)](https://zod.dev)
+
+### 🔗 [Acessar a demo](https://dashboard-financeiro-nine-dusky.vercel.app)
+
+Login: `admin@bix.com.br` · Senha: `bix@2024`
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FFlaviaMMartini%2Fdashboard-financeiro&env=SESSION_SECRET&envDescription=Segredo%20de%20no%20m%C3%ADnimo%2032%20caracteres%20para%20assinar%20o%20cookie%20de%20sess%C3%A3o&project-name=dashboard-financeiro)
 
