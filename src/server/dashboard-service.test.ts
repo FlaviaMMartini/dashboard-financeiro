@@ -7,7 +7,11 @@ import { DAY_IN_MS } from '@/domain/dates'
 import { extractAccountProfiles } from '@/domain/filter-options'
 import { DEFAULT_TABLE_PARAMS } from '@/domain/table'
 
-import { getDashboardData } from './dashboard-service'
+import {
+  getDashboardOverview,
+  getTransactionsPage,
+  TRANSACTIONS_CACHE_TAG,
+} from './dashboard-service'
 import { loadDataset } from './transactions-repository'
 
 jest.mock('next/cache', () => ({ cacheLife: jest.fn(), cacheTag: jest.fn() }))
@@ -33,12 +37,13 @@ jest.mocked(loadDataset).mockResolvedValue({
   firstDate: reference - 40 * DAY_IN_MS,
 })
 
-describe('getDashboardData', () => {
-  it('agrega apenas as transações filtradas e marca pendentes', async () => {
-    const data = await getDashboardData(
-      { accounts: [], industries: [], states: ['TX'] },
-      DEFAULT_TABLE_PARAMS,
-    )
+const onlyTx = { accounts: [], industries: [], states: ['TX'] }
+
+beforeEach(() => jest.clearAllMocks())
+
+describe('getDashboardOverview', () => {
+  it('agrega apenas as transações filtradas (cards, gráficos e opções)', async () => {
+    const data = await getDashboardOverview(onlyTx)
 
     expect(data.summary).toMatchObject({
       revenueInCents: 900,
@@ -46,20 +51,48 @@ describe('getDashboardData', () => {
       pendingAmountInCents: 100,
       transactionCount: 2,
     })
-    expect(data.table.items.map((row) => [row.id, row.pending])).toEqual([
-      ['recent', true],
-      ['old', false],
-    ])
     expect(data.monthly).toHaveLength(2)
     expect(data.breakdown.withdraw.industries).toEqual(['Airlines'])
     expect(data.options.states).toEqual(['CA', 'TX'])
     expect(data.period).toEqual({ firstDay: '2023-10-21', lastDay: '2023-11-30' })
     expect(data.pendingRule).toEqual({ referenceDay: '2023-11-30', windowDays: 7 })
+    expect(data).not.toHaveProperty('table')
   })
 
-  it("usa o cache do Next ('use cache') com revalidação e tag", async () => {
-    await getDashboardData({ accounts: [], industries: [], states: [] }, DEFAULT_TABLE_PARAMS)
+  it('depende só dos filtros: página e ordenação não fazem parte da chave do cache', () => {
+    // Os argumentos de uma função com 'use cache' compõem a chave.
+    expect(getDashboardOverview).toHaveLength(1)
+  })
+})
+
+describe('getTransactionsPage', () => {
+  it('pagina as transações filtradas e marca pendentes', async () => {
+    const page = await getTransactionsPage(onlyTx, DEFAULT_TABLE_PARAMS)
+
+    expect(page).toMatchObject({ total: 2, page: 1, pageSize: 10 })
+    expect(page.items.map((row) => [row.id, row.pending])).toEqual([
+      ['recent', true],
+      ['old', false],
+    ])
+  })
+
+  it('respeita a ordenação pedida', async () => {
+    const page = await getTransactionsPage(onlyTx, {
+      page: 1,
+      sortField: 'amount',
+      sortOrder: 'ascend',
+    })
+    expect(page.items.map((row) => row.id)).toEqual(['recent', 'old'])
+  })
+})
+
+describe("cache do Next ('use cache')", () => {
+  it.each([
+    ['getDashboardOverview', () => getDashboardOverview(onlyTx)],
+    ['getTransactionsPage', () => getTransactionsPage(onlyTx, DEFAULT_TABLE_PARAMS)],
+  ])('%s usa revalidação e a tag compartilhada', async (_, call) => {
+    await call()
     expect(cacheLife).toHaveBeenCalledWith('hours')
-    expect(cacheTag).toHaveBeenCalledWith('transactions')
+    expect(cacheTag).toHaveBeenCalledWith(TRANSACTIONS_CACHE_TAG)
   })
 })

@@ -19,36 +19,43 @@ import type { Transaction } from '@/domain/transaction'
 
 import { loadDataset } from './transactions-repository'
 
+export const TRANSACTIONS_CACHE_TAG = 'transactions'
+
 export interface TransactionRow extends Transaction {
   pending: boolean
 }
 
-export interface DashboardData {
+/** Tudo que depende apenas dos filtros: cards, gráficos e opções dos selects. */
+export interface DashboardOverview {
   summary: Summary
   monthly: MonthlyPoint[]
   breakdown: Record<Transaction['type'], IndustryBreakdown>
   options: FilterOptions
-  table: TablePage<TransactionRow>
   period: { firstDay: string; lastDay: string }
   pendingRule: { referenceDay: string; windowDays: number }
 }
 
-/**
+export interface DashboardData extends DashboardOverview {
+  table: TablePage<TransactionRow>
+}
+
+/*
  * Toda a agregação acontece no servidor: o navegador recebe alguns KB em vez
- * dos 11,7 MB do dataset. `'use cache'` guarda uma entrada por combinação de
- * filtros (os argumentos compõem a chave do cache).
+ * dos 11,7 MB do dataset. O cache é dividido em duas funções, porque os
+ * argumentos de uma função com `'use cache'` compõem a sua chave:
+ *
+ * - `getDashboardOverview(filters)`: trocar de página ou de ordenação não
+ *   recalcula cards e gráficos;
+ * - `getTransactionsPage(filters, tableParams)`: uma entrada por página.
  */
-export async function getDashboardData(
-  filters: Filters,
-  tableParams: TableParams,
-): Promise<DashboardData> {
+
+export async function getDashboardOverview(filters: Filters): Promise<DashboardOverview> {
   'use cache'
   cacheLife('hours')
-  cacheTag('transactions')
+  cacheTag(TRANSACTIONS_CACHE_TAG)
 
   const dataset = await loadDataset()
   const filtered = applyFilters(dataset.transactions, filters)
-  const page = paginateTransactions(filtered, tableParams)
 
   return {
     summary: summarize(filtered, dataset.referenceDate),
@@ -58,14 +65,27 @@ export async function getDashboardData(
       withdraw: buildIndustryBreakdown(filtered, 'withdraw'),
     },
     options: getFilterOptions(dataset.accountProfiles, filters),
-    table: {
-      ...page,
-      items: page.items.map((tx) => ({ ...tx, pending: isPending(tx, dataset.referenceDate) })),
-    },
     period: { firstDay: toIsoDay(dataset.firstDate), lastDay: toIsoDay(dataset.referenceDate) },
     pendingRule: {
       referenceDay: toIsoDay(dataset.referenceDate),
       windowDays: PENDING_WINDOW_DAYS,
     },
+  }
+}
+
+export async function getTransactionsPage(
+  filters: Filters,
+  tableParams: TableParams,
+): Promise<TablePage<TransactionRow>> {
+  'use cache'
+  cacheLife('hours')
+  cacheTag(TRANSACTIONS_CACHE_TAG)
+
+  const dataset = await loadDataset()
+  const page = paginateTransactions(applyFilters(dataset.transactions, filters), tableParams)
+
+  return {
+    ...page,
+    items: page.items.map((tx) => ({ ...tx, pending: isPending(tx, dataset.referenceDate) })),
   }
 }

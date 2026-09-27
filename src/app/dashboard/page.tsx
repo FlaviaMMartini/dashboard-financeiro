@@ -4,7 +4,7 @@ import { parseFilters } from '@/domain/filters'
 import { parseTableParams } from '@/domain/table'
 import { requireSession } from '@/features/auth/get-session'
 import { DashboardView } from '@/features/dashboard/components/dashboard-view'
-import { getDashboardData } from '@/server/dashboard-service'
+import { getDashboardOverview, getTransactionsPage } from '@/server/dashboard-service'
 
 export const metadata: Metadata = { title: 'Dashboard' }
 
@@ -13,12 +13,16 @@ export default async function DashboardPage({ searchParams }: PageProps<'/dashbo
   const query = await searchParams
   const filters = parseFilters(query)
   const tableParams = parseTableParams(query)
-  const data = await getDashboardData(filters, tableParams)
+  // Dois caches independentes, buscados em paralelo (ver dashboard-service).
+  const [overview, table] = await Promise.all([
+    getDashboardOverview(filters),
+    getTransactionsPage(filters, tableParams),
+  ])
 
   return (
     <DashboardView
       userName={session.name}
-      data={data}
+      data={{ ...overview, table }}
       filters={filters}
       tableParams={tableParams}
     />
