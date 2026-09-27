@@ -5,7 +5,7 @@ import { timingSafeEqual } from 'node:crypto'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 
-import { getEnv } from '@/server/env'
+import { getDemoUser } from '@/server/env'
 
 import { getSafeRedirect, LOGIN_PATH } from './redirect'
 import { loginSchema, type LoginInput, type LoginResult } from './schemas'
@@ -24,13 +24,13 @@ export async function login(input: LoginInput): Promise<LoginResult> {
   const parsed = loginSchema.safeParse(input)
   if (!parsed.success) return { error: INVALID_CREDENTIALS }
 
-  const env = getEnv()
+  const demoUser = getDemoUser()
   const { email, password, from } = parsed.data
-  const emailMatches = safeEqual(email.toLowerCase(), env.DEMO_USER_EMAIL.toLowerCase())
-  const passwordMatches = safeEqual(password, env.DEMO_USER_PASSWORD)
+  const emailMatches = safeEqual(email.toLowerCase(), demoUser.email.toLowerCase())
+  const passwordMatches = safeEqual(password, demoUser.password)
   if (!emailMatches || !passwordMatches) return { error: INVALID_CREDENTIALS }
 
-  const token = await createSessionToken({ name: env.DEMO_USER_NAME, email: env.DEMO_USER_EMAIL })
+  const token = await createSessionToken({ name: demoUser.name, email: demoUser.email })
   const cookieStore = await cookies()
   cookieStore.set(SESSION_COOKIE, token, sessionCookieOptions)
 

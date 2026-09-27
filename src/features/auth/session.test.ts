@@ -32,10 +32,10 @@ describe('session', () => {
   })
 
   it('retorna null quando o payload não tem o formato esperado', async () => {
-    const { getEnv } = jest.requireActual<typeof import('@/server/env')>('@/server/env')
+    const { getSessionSecret } = jest.requireActual<typeof import('@/server/env')>('@/server/env')
     const token = await new SignJWT({ name: 'sem e-mail' })
       .setProtectedHeader({ alg: 'HS256' })
-      .sign(key(getEnv().SESSION_SECRET))
+      .sign(key(getSessionSecret()))
     await expect(verifySessionToken(token)).resolves.toBeNull()
   })
 

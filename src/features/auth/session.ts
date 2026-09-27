@@ -1,7 +1,7 @@
 import { jwtVerify, SignJWT } from 'jose'
 import { z } from 'zod'
 
-import { getEnv } from '@/server/env'
+import { getSessionSecret } from '@/server/env'
 
 /** Módulo compartilhado entre o proxy e o servidor: sem dependências de `next/headers`. */
 
@@ -12,7 +12,7 @@ const sessionSchema = z.object({ name: z.string(), email: z.email() })
 
 export type Session = z.infer<typeof sessionSchema>
 
-const getKey = () => new TextEncoder().encode(getEnv().SESSION_SECRET)
+const getKey = () => new TextEncoder().encode(getSessionSecret())
 
 export async function createSessionToken(session: Session): Promise<string> {
   return new SignJWT(session)

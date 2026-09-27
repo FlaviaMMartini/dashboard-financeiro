@@ -1,12 +1,12 @@
 import type { Metadata } from 'next'
 
 import { LoginView } from '@/features/auth/components/login-view'
-import { getEnv } from '@/server/env'
+import { getDemoUser } from '@/server/env'
 
 export const metadata: Metadata = { title: 'Login' }
 
 export default function LoginPage() {
-  const { DEMO_USER_EMAIL, DEMO_USER_PASSWORD } = getEnv()
+  const { email, password } = getDemoUser()
   // Conta de demonstração, exibida de propósito para facilitar a avaliação.
-  return <LoginView demoCredentials={{ email: DEMO_USER_EMAIL, password: DEMO_USER_PASSWORD }} />
+  return <LoginView demoCredentials={{ email, password }} />
 }
