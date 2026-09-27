@@ -41,7 +41,17 @@ describe('getFilterOptions (cascata)', () => {
     ).toEqual({
       accounts: ['Delta', 'Hilton'],
       industries: ['Airlines'],
-      states: ['GA'],
+      states: ['GA', 'VA'],
+    })
+  })
+
+  it('mantém seleções incompatíveis entre si nas opções, para permitir desmarcá-las', () => {
+    expect(
+      getFilterOptions(profiles, { accounts: ['Delta'], industries: ['Hotels'], states: [] }),
+    ).toEqual({
+      accounts: ['Delta', 'Hilton', 'Marriott'],
+      industries: ['Airlines', 'Hotels'],
+      states: [],
     })
   })
 })
