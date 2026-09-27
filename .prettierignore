@@ -1,0 +1,4 @@
+data/
+coverage/
+.next/
+package-lock.json
