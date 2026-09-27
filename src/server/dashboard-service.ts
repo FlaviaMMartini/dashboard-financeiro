@@ -42,15 +42,22 @@ export interface DashboardData extends DashboardOverview {
 /*
  * Toda a agregação acontece no servidor: o navegador recebe alguns KB em vez
  * dos 11,7 MB do dataset. O cache é dividido em duas funções, porque os
- * argumentos de uma função com `'use cache'` compõem a sua chave:
+ * argumentos de uma função cacheada compõem a sua chave:
  *
  * - `getDashboardOverview(filters)`: trocar de página ou de ordenação não
  *   recalcula cards e gráficos;
  * - `getTransactionsPage(filters, tableParams)`: uma entrada por página.
+ *
+ * `'use cache: remote'`: em serverless, cada instância tem memória própria e
+ * efêmera, então o cache em memória quase não acerta. O cache remoto (fornecido
+ * pela Vercel) é compartilhado entre instâncias e evita que uma instância nova
+ * precise carregar e validar o dataset só para responder uma combinação já
+ * calculada. Fora da Vercel, sem `cacheHandlers` configurado, o Next usa o
+ * cache em memória como fallback.
  */
 
 export async function getDashboardOverview(filters: Filters): Promise<DashboardOverview> {
-  'use cache'
+  'use cache: remote'
   cacheLife('hours')
   cacheTag(TRANSACTIONS_CACHE_TAG)
 
@@ -77,7 +84,7 @@ export async function getTransactionsPage(
   filters: Filters,
   tableParams: TableParams,
 ): Promise<TablePage<TransactionRow>> {
-  'use cache'
+  'use cache: remote'
   cacheLife('hours')
   cacheTag(TRANSACTIONS_CACHE_TAG)
 
