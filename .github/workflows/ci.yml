@@ -94,16 +94,22 @@ jobs:
             echo "VERCEL_PROJECT_ID=$project"
           } >> "$GITHUB_ENV"
           echo "enabled=true" >> "$GITHUB_OUTPUT"
-      - name: Validar acesso ao projeto na Vercel
+      - name: Validar acesso à Vercel
         if: steps.config.outputs.enabled == 'true'
         run: |
-          status=$(curl -s -o response.json -w '%{http_code}'             -H "Authorization: Bearer $VERCEL_TOKEN"             "https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID?teamId=$VERCEL_ORG_ID")
-          if [ "$status" != "200" ]; then
-            reason=$(jq -r '.error.message // "sem detalhes"' response.json)
-            echo "::error title=Vercel respondeu HTTP $status::$reason. Confira: VERCEL_TOKEN com escopo no time do projeto; VERCEL_ORG_ID começando com team_; VERCEL_PROJECT_ID começando com prj_."
-            exit 1
-          fi
-          echo "Projeto encontrado: $(jq -r '.name' response.json)"
+          # A CLI consulta o time e o projeto; um token sem acesso a qualquer um
+          # deles falha com a mensagem genérica "Could not retrieve Project Settings".
+          check() {
+            status=$(curl -s -o response.json -w '%{http_code}'               -H "Authorization: Bearer $VERCEL_TOKEN" "$2")
+            if [ "$status" != "200" ]; then
+              reason=$(jq -r '.error.message // "sem detalhes"' response.json)
+              echo "::error title=Sem acesso ao $1 na Vercel (HTTP $status)::$reason. $3"
+              exit 1
+            fi
+            echo "$1 OK: $(jq -r '.name // .slug' response.json)"
+          }
+          check "time" "https://api.vercel.com/v2/teams/$VERCEL_ORG_ID"             "Recrie o VERCEL_TOKEN com Scope no time do projeto e acesso completo (não restrito a projetos)."
+          check "projeto" "https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID?teamId=$VERCEL_ORG_ID"             "Confira VERCEL_PROJECT_ID (prj_...) e se o projeto pertence ao time informado."
       - uses: actions/checkout@v5
         if: steps.config.outputs.enabled == 'true'
       - uses: actions/setup-node@v5
