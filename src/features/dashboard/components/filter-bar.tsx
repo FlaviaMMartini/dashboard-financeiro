@@ -1,9 +1,6 @@
 'use client'
 
 import FilterAltOffOutlined from '@mui/icons-material/FilterAltOffOutlined'
-import FilterListOutlined from '@mui/icons-material/FilterListOutlined'
-import Autocomplete from '@mui/material/Autocomplete'
-import Badge from '@mui/material/Badge'
 import Button from '@mui/material/Button'
 import TextField from '@mui/material/TextField'
 import type { ChangeEvent } from 'react'
@@ -12,6 +9,8 @@ import styled from 'styled-components'
 import type { FilterOptions } from '@/domain/filter-options'
 import { countActiveFilters, withDateRange, type Filters, type Period } from '@/domain/filters'
 import { media } from '@/styles/theme'
+
+import { MultiSelectFilter } from './multi-select-filter'
 
 const Bar = styled.section`
   display: grid;
@@ -28,7 +27,9 @@ const Bar = styled.section`
   }
 
   ${media.lg} {
-    grid-template-columns: repeat(2, 160px) repeat(3, minmax(0, 1fr)) auto;
+    grid-template-columns: repeat(2, 146px) repeat(3, minmax(0, 1fr)) auto;
+    gap: 12px;
+    padding: 16px;
     align-items: start;
 
     > .full {
@@ -37,21 +38,29 @@ const Bar = styled.section`
   }
 `
 
-const Actions = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 16px;
-  min-height: 40px;
-  color: ${({ theme }) => theme.colors.textMuted};
+const ClearButton = styled(Button)`
+  && {
+    height: 40px;
+    white-space: nowrap;
+  }
 `
 
 type ListKey = 'accounts' | 'industries' | 'states'
 
-const LIST_FIELDS: Array<{ key: ListKey; label: string; placeholder: string }> = [
-  { key: 'accounts', label: 'Contas', placeholder: 'Todas as contas' },
-  { key: 'industries', label: 'Indústrias', placeholder: 'Todas as indústrias' },
-  { key: 'states', label: 'Estados', placeholder: 'Todos os estados' },
+const LIST_FIELDS: Array<{
+  key: ListKey
+  label: string
+  placeholder: string
+  pluralNoun: string
+}> = [
+  { key: 'accounts', label: 'Contas', placeholder: 'Todas as contas', pluralNoun: 'contas' },
+  {
+    key: 'industries',
+    label: 'Indústrias',
+    placeholder: 'Todas as indústrias',
+    pluralNoun: 'indústrias',
+  },
+  { key: 'states', label: 'Estados', placeholder: 'Todos os estados', pluralNoun: 'estados' },
 ]
 
 interface FilterBarProps {
@@ -105,44 +114,26 @@ export function FilterBar({ filters, options, period, onChange }: FilterBarProps
           htmlInput: { min: from, max: period.lastDay },
         }}
       />
-      {LIST_FIELDS.map(({ key, label, placeholder }) => (
-        <Autocomplete
+      {LIST_FIELDS.map(({ key, ...field }) => (
+        <MultiSelectFilter
           key={key}
-          className="full"
-          multiple
-          size="small"
-          limitTags={2}
-          disableCloseOnSelect
+          {...field}
+          name={`filtro-${key}`}
           options={options[key]}
           value={filters[key]}
-          onChange={(_, values) => onChange({ ...filters, [key]: values })}
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              label={label}
-              placeholder={filters[key].length === 0 ? placeholder : undefined}
-            />
-          )}
-          noOptionsText="Nenhuma opção"
+          onChange={(values) => onChange({ ...filters, [key]: values })}
         />
       ))}
-      <Actions className="full">
-        <Badge
-          badgeContent={activeCount}
-          color="primary"
-          aria-label={`${activeCount} filtros ativos`}
-        >
-          <FilterListOutlined />
-        </Badge>
-        <Button
-          variant="outlined"
-          startIcon={<FilterAltOffOutlined />}
-          onClick={handleClear}
-          disabled={activeCount === 0}
-        >
-          Limpar
-        </Button>
-      </Actions>
+      <ClearButton
+        className="full"
+        variant="outlined"
+        startIcon={<FilterAltOffOutlined />}
+        onClick={handleClear}
+        disabled={activeCount === 0}
+        aria-label={`Limpar filtros (${activeCount} ativos)`}
+      >
+        Limpar{activeCount > 0 && ` (${activeCount})`}
+      </ClearButton>
     </Bar>
   )
 }

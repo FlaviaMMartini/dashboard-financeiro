@@ -28,8 +28,8 @@ describe('FilterBar', () => {
 
     expect(screen.getByLabelText('De')).toHaveValue('2021-11-10')
     expect(screen.getByLabelText('Até')).toHaveValue('2023-11-30')
-    expect(screen.getByRole('button', { name: /limpar/i })).toBeDisabled()
-    expect(screen.getByLabelText('0 filtros ativos')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Limpar filtros (0 ativos)' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /limpar/i })).toHaveTextContent(/^Limpar$/)
   })
 
   it('altera o início e o fim do período', () => {
@@ -72,7 +72,9 @@ describe('FilterBar', () => {
       states: ['GA'],
     })
 
-    expect(screen.getByLabelText('3 filtros ativos')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Limpar filtros (3 ativos)' })).toHaveTextContent(
+      'Limpar (3)',
+    )
     await user.click(screen.getByRole('button', { name: /limpar/i }))
 
     expect(onChange).toHaveBeenCalledWith({
