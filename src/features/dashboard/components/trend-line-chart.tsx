@@ -14,8 +14,9 @@ import { useTheme } from 'styled-components'
 
 import type { MonthlyPoint } from '@/domain/aggregations'
 
-import { formatAxisCurrency, formatAxisMonth, formatTooltipCurrency } from '../chart-formatters'
+import { formatAxisCurrency, formatAxisMonth } from '../chart-formatters'
 import { CHART_HEIGHT, ChartCard } from './chart-card'
+import { ChartTooltip } from './chart-tooltip'
 
 interface TrendLineChartProps {
   data: MonthlyPoint[]
@@ -39,7 +40,7 @@ export function TrendLineChart({ data }: TrendLineChartProps) {
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.colors.border} />
           <XAxis dataKey="month" tickFormatter={formatAxisMonth} tick={{ fontSize: 12 }} />
           <YAxis tickFormatter={formatAxisCurrency} tick={{ fontSize: 12 }} width={72} />
-          <Tooltip formatter={formatTooltipCurrency} labelFormatter={formatAxisMonth} />
+          <Tooltip content={<ChartTooltip />} wrapperStyle={{ zIndex: 10, outline: 'none' }} />
           <Legend wrapperStyle={{ fontSize: 12 }} />
           <Line
             type="monotone"
