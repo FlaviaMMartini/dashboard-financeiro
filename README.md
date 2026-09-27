@@ -185,14 +185,14 @@ A regra fica numa função pura (`src/domain/pending.ts`) e é explicada em um t
 
 O `transactions.json` (50 mil registros, 11,7 MB) **nunca é enviado ao navegador**. O repositório lê e valida o arquivo com Zod uma única vez por processo.
 
-O cache usa `'use cache'` (Cache Components), com `cacheLife('hours')` e `cacheTag('transactions')`. Os argumentos de uma função com `'use cache'` formam a chave do cache, por isso ele fica **dividido em duas funções**, buscadas em paralelo:
+O cache usa `'use cache: remote'` (Cache Components), com `cacheLife('hours')` e `cacheTag('transactions')`. Em serverless, cada instância tem memória própria e efêmera, e o cache em memória (`'use cache'`) quase não acerta. O cache remoto, fornecido pela Vercel, é compartilhado entre as instâncias. Fora da Vercel, o Next usa o cache em memória como fallback. Os argumentos de uma função com `'use cache'` formam a chave do cache, por isso ele fica **dividido em duas funções**, buscadas em paralelo:
 
 | Função                                      | Chave do cache               | Conteúdo                            |
 | ------------------------------------------- | ---------------------------- | ----------------------------------- |
 | `getDashboardOverview(filters)`             | filtros                      | cards, gráficos, opções dos selects |
 | `getTransactionsPage(filters, tableParams)` | filtros + página + ordenação | 10 linhas da tabela                 |
 
-Trocar de página ou reordenar a tabela **não recalcula cards e gráficos**. Com Cache Components, `/dashboard` usa **Partial Prerendering**: o shell (sidebar e skeleton) é estático e os dados chegam por streaming.
+Trocar de página ou reordenar a tabela **não recalcula cards e gráficos**. As funções rodam em **São Paulo (`gru1`)**, configurado em `vercel.json`, perto dos usuários, em vez da região padrão nos EUA. Com Cache Components, `/dashboard` usa **Partial Prerendering**: o shell (sidebar e skeleton) é estático e os dados chegam por streaming.
 
 **Paginação em vez de rolagem infinita:** a tabela mostra sempre ~10 linhas, com memória constante no navegador. A posição fica na URL (`?page=37`), então dá para compartilhar o link, o voltar do navegador funciona e a página sobrevive ao F5, que é o que um histórico financeiro, usado para conferência, precisa. A rolagem infinita acumula linhas na tela, exigiria virtualizar a lista e perderia a posição ao recarregar. Com um banco de dados real, a paginação por número de página daria lugar à paginação por cursor (keyset).
 
