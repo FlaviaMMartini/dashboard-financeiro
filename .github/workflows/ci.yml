@@ -76,12 +76,34 @@ jobs:
       - name: Verificar secrets da Vercel
         id: config
         run: |
-          if [ -n "$VERCEL_TOKEN" ] && [ -n "$VERCEL_ORG_ID" ] && [ -n "$VERCEL_PROJECT_ID" ]; then
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-          else
+          # Remove espaços e quebras de linha coladas por engano junto com os valores.
+          token=$(printf '%s' "$VERCEL_TOKEN" | tr -d '[:space:]')
+          org=$(printf '%s' "$VERCEL_ORG_ID" | tr -d '[:space:]')
+          project=$(printf '%s' "$VERCEL_PROJECT_ID" | tr -d '[:space:]')
+
+          if [ -z "$token" ] || [ -z "$org" ] || [ -z "$project" ]; then
             echo "::notice::Secrets da Vercel não configurados: deploy ignorado."
             echo "enabled=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+
+          echo "::add-mask::$token"
+          {
+            echo "VERCEL_TOKEN=$token"
+            echo "VERCEL_ORG_ID=$org"
+            echo "VERCEL_PROJECT_ID=$project"
+          } >> "$GITHUB_ENV"
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+      - name: Validar acesso ao projeto na Vercel
+        if: steps.config.outputs.enabled == 'true'
+        run: |
+          status=$(curl -s -o response.json -w '%{http_code}'             -H "Authorization: Bearer $VERCEL_TOKEN"             "https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID?teamId=$VERCEL_ORG_ID")
+          if [ "$status" != "200" ]; then
+            reason=$(jq -r '.error.message // "sem detalhes"' response.json)
+            echo "::error title=Vercel respondeu HTTP $status::$reason. Confira: VERCEL_TOKEN com escopo no time do projeto; VERCEL_ORG_ID começando com team_; VERCEL_PROJECT_ID começando com prj_."
+            exit 1
+          fi
+          echo "Projeto encontrado: $(jq -r '.name' response.json)"
       - uses: actions/checkout@v5
         if: steps.config.outputs.enabled == 'true'
       - uses: actions/setup-node@v5
