@@ -109,7 +109,7 @@ npm run test:e2e                     # E2E em desktop e mobile, contra o build d
 | Autenticação | JWT HS256 com **jose**, em cookie `HttpOnly`                                                                          |
 | Testes       | **Jest** + **Testing Library** (unitários e componentes) e **Playwright** (E2E)                                       |
 | Qualidade    | ESLint, Prettier, Husky, lint-staged, commitlint                                                                      |
-| CI           | GitHub Actions                                                                                                        |
+| CI/CD        | GitHub Actions + Vercel                                                                                               |
 
 ## Funcionalidades
 
@@ -271,15 +271,47 @@ Recharts gera SVG composável e leve. O tooltip é um componente próprio: orden
 
 ## Deploy
 
-**Vercel (recomendado):** clique em **Deploy with Vercel** no topo desta página e informe um `SESSION_SECRET` com pelo menos 32 caracteres. O dataset é incluído no bundle serverless via `outputFileTracingIncludes` em `next.config.ts`.
+### Esteira de CI/CD
 
-**Qualquer ambiente Node.js:**
+O deploy é feito pelo **GitHub Actions**, e não pela integração automática da Vercel (desativada em `vercel.json`). Assim, **nada é publicado sem passar por todas as verificações**:
+
+```
+push / pull request
+  → Lint, tipos e testes (100% de cobertura)
+  → E2E (Playwright, desktop + mobile)
+  → Deploy na Vercel
+       ├─ pull request → preview (URL própria, visível no PR)
+       └─ push na main → produção
+```
+
+Cada deploy fica registrado em **Environments** no GitHub (`preview` e `production`), com o link publicado. Enquanto os secrets da Vercel não estiverem configurados, o job de deploy é pulado com um aviso e o restante da esteira funciona normalmente.
+
+<details>
+<summary><strong>Configurar o deploy (uma única vez)</strong></summary>
+
+1. **Criar o projeto na Vercel:** _Add New → Project → Import Git Repository_ e escolha este repositório.
+2. **Na Vercel**, em _Project → Settings → Environment Variables_, adicione `SESSION_SECRET` (mínimo de 32 caracteres) para Production e Preview.
+3. **Gerar um token:** _Account Settings → Tokens → Create Token_.
+4. **Obter os IDs:** o _Project ID_ fica em _Project → Settings → General_, e o ID da conta ou time (_Team ID_ / _Vercel ID_) em _Account/Team Settings → General_. Outra opção é rodar `npx vercel link` localmente e ler `.vercel/project.json` (`orgId` e `projectId`).
+5. **No GitHub**, em _Settings → Secrets and variables → Actions → New repository secret_, cadastre:
+
+   | Secret              | Valor            |
+   | ------------------- | ---------------- |
+   | `VERCEL_TOKEN`      | token do passo 3 |
+   | `VERCEL_ORG_ID`     | ID da conta/time |
+   | `VERCEL_PROJECT_ID` | ID do projeto    |
+
+</details>
+
+### Qualquer ambiente Node.js
 
 ```bash
 npm ci
 npm run build
 SESSION_SECRET=<segredo-com-32-caracteres-ou-mais> npm start
 ```
+
+O dataset é incluído no bundle serverless via `outputFileTracingIncludes` em `next.config.ts`. O botão **Deploy with Vercel** no topo cria uma cópia independente do projeto na conta de quem clicar.
 
 ---
 
